@@ -12,8 +12,9 @@ if __name__ == "__main__":
     for _ in range(5_000):
         action, _ = expert.predict(obs, deterministic=True)
         next_obs, reward, done, info = env.step(action)
-        model.replay_buffer.add(obs, next_obs, action, reward, done, info)
+        scaled_action = model.policy.scale_action(action)
+        model.replay_buffer.add(obs, next_obs, scaled_action, reward, done, info)
         obs = next_obs
 
-    model.save_replay_buffer("expert_buffer.pkl")
+    model.save_replay_buffer("data/expert_buffer.pkl")
     env.close()

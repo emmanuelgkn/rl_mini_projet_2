@@ -7,6 +7,21 @@ from stable_baselines3.common.vec_env import DummyVecEnv
 from stable_baselines3.common.save_util import load_from_pkl
 from stable_baselines3.common.evaluation import evaluate_policy
 from stable_baselines3.common.type_aliases import ReplayBufferSamples
+from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
+
+expert_buffer = load_from_pkl("data/expert_buffer.pkl")
+obs_data = expert_buffer.observations[:expert_buffer.pos, 0, :]
+obs_mean = th.tensor(obs_data.mean(axis=0), dtype=th.float32)
+obs_std = th.tensor(obs_data.std(axis=0) + 1e-5, dtype=th.float32)
+
+class StdExtractor(BaseFeaturesExtractor):
+    def __init__(self, observation_space):
+        super().__init__(observation_space, observation_space.shape[0])
+        self.register_buffer("mean", obs_mean)
+        self.register_buffer("std", obs_std)
+
+    def forward(self, x):
+        return th.clamp((x - self.mean) / self.std, -10.0, 10.0)
 
 class LayerNormReLU(nn.Sequential):
     def __init__(self):
@@ -14,18 +29,19 @@ class LayerNormReLU(nn.Sequential):
 
 if __name__ == "__main__":
     env = DummyVecEnv([make_env])
-    expert_buffer = load_from_pkl("expert_buffer.pkl")
 
     model = SAC(
         "MlpPolicy",
         env,
-        learning_starts=1000,
-        gradient_steps=4,
+        learning_starts=100,
+        ent_coef="auto_0.01",
+        gradient_steps=2,
         batch_size=256,
         policy_kwargs=dict(
-            net_arch=[256,256],
+            net_arch=[256, 256],
             activation_fn=LayerNormReLU,
-            n_critics=5,
+            n_critics=2,
+            features_extractor_class=StdExtractor,
         ),
         verbose=1,
     )
@@ -41,8 +57,9 @@ if __name__ == "__main__":
     model.replay_buffer.sample = rlpd_sample
 
     model.learn(total_timesteps=20_000, log_interval=1)
-    model.save("sac_rlpd")
+    model.save("data/sac_rlpd")
 
     rewards, lengths = evaluate_policy(model, env, n_eval_episodes=1, return_episode_rewards=True)
     print("Reward_moyen :", np.mean(rewards), "| Pas:", np.mean(lengths))
     env.close()
+# Reward_moyen : 89.380457 | Pas: 1500.0
