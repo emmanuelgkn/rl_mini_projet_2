@@ -1,3 +1,5 @@
 .DS_Store
 instructions.md
 figures.md
+expert_buffer.pkl
+dagger_policy.pt

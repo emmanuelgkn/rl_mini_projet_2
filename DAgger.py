@@ -60,6 +60,7 @@ if __name__ == "__main__":
         )
         dagger_trainer.train(8_000)
 
+    dagger_trainer.policy.save("dagger_policy.pt")
     rewards, lengths = evaluate_policy(dagger_trainer.policy, env, 1, return_episode_rewards=True)
     print("Reward moyen :", np.mean(rewards))
     print("Temps de tour (en pas) :", np.mean(lengths))
