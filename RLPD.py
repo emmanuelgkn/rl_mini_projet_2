@@ -57,9 +57,12 @@ if __name__ == "__main__":
     model.replay_buffer.sample = rlpd_sample
 
     model.learn(total_timesteps=20_000, log_interval=1)
-    model.save("data/sac_rlpd")
 
-    rewards, lengths = evaluate_policy(model, env, n_eval_episodes=1, return_episode_rewards=True)
-    print("Reward_moyen :", np.mean(rewards), "| Pas:", np.mean(lengths))
+    np.savez(
+    "logs/metrics_rlpd.npz",
+    rewards=env.envs[0].get_episode_rewards(),
+    lengths=env.envs[0].get_episode_lengths(),
+    )
+
+    model.save("data/sac_rlpd")
     env.close()
-# Reward_moyen : 89.380457 | Pas: 1500.0

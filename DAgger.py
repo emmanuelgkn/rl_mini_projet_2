@@ -19,7 +19,12 @@ class LayerNormReLU(nn.Sequential):
         super().__init__(nn.LayerNorm(64), nn.ReLU())
 
 def make_env():
-    env = gym.make("supertuxkart/flattened_continuous_actions-v0", use_subprocess=False)
+    env = gym.make(
+        "supertuxkart/flattened_continuous_actions-v0", 
+        track="snowmountain",
+        use_subprocess=False, 
+        max_episode_steps=700
+        )
     obs_space = env.observation_space["continuous"]
     env = gym.wrappers.TransformObservation(env, lambda o: o["continuous"])
     env.observation_space = obs_space
@@ -72,12 +77,14 @@ if __name__ == "__main__":
             bc_trainer=bc_trainer,
             rng=rng,
         )
-        dagger_trainer.train(20_000)
+        dagger_trainer.train(20_000,bc_train_kwargs=dict(log_rollouts_venv=None))
 
     dagger_trainer.policy.save("data/dagger_policy.pt")
-    rewards, lengths = evaluate_policy(dagger_trainer.policy, env, 1, return_episode_rewards=True)
-    print("Reward moyen :", np.mean(rewards))
-    print("Temps de tour (en pas) :", np.mean(lengths))
+
+    np.savez(
+        "logs/metrics_dagger.npz",
+        rewards=env.envs[0].get_episode_rewards(),
+        lengths=env.envs[0].get_episode_lengths(),
+    )
+
     env.close()
-# Reward moyen : 314.085036
-# Temps de tour (en pas) : 374.0

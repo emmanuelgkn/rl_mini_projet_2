@@ -9,7 +9,7 @@ if __name__ == "__main__":
     model = SAC("MlpPolicy", env=env,buffer_size=50_000)
 
     obs = env.reset()
-    for _ in range(5_000):
+    for _ in range(10_000):
         action, _ = expert.predict(obs, deterministic=True)
         next_obs, reward, done, info = env.step(action)
         scaled_action = model.policy.scale_action(action)
