@@ -46,45 +46,51 @@ class ExpertPolicy(BasePolicy):
 if __name__ == "__main__":
 
     # Pour la repoductibilité
-    torch.manual_seed(0)
-    np.random.seed(0)
-
-    rng = np.random.default_rng(0)
     env = DummyVecEnv([make_env])
     expert = ExpertPolicy(env)
 
-    policy = ActorCriticPolicy(
-    env.observation_space,
-    env.action_space,
-    lr_schedule=lambda _: 1e-3,
-    net_arch=[64, 64],
-    activation_fn=LayerNormReLU,
-    
-)
+    for seed in range(3):
+        torch.manual_seed(seed)
+        np.random.seed(seed)
+        rng = np.random.default_rng(seed)
 
-    bc_trainer = bc.BC(
-        observation_space=env.observation_space,
-        action_space=env.action_space,
-        rng=rng,
-        policy=policy,
-    )
 
-    with tempfile.TemporaryDirectory(prefix="dagger_example_") as tmpdir:
-        dagger_trainer = SimpleDAggerTrainer(
-            venv=env,
-            scratch_dir=tmpdir,
-            expert_policy=expert,
-            bc_trainer=bc_trainer,
-            rng=rng,
+        env.envs[0].episode_returns.clear()
+        env.envs[0].episode_lengths.clear()
+  
+
+        policy = ActorCriticPolicy(
+        env.observation_space,
+        env.action_space,
+        lr_schedule=lambda _: 1e-3,
+        net_arch=[64, 64],
+        activation_fn=LayerNormReLU,
+        
         )
-        dagger_trainer.train(20_000,bc_train_kwargs=dict(log_rollouts_venv=None))
+
+        bc_trainer = bc.BC(
+            observation_space=env.observation_space,
+            action_space=env.action_space,
+            rng=rng,
+            policy=policy,
+        )
+
+        with tempfile.TemporaryDirectory(prefix="dagger_example_") as tmpdir:
+            dagger_trainer = SimpleDAggerTrainer(
+                venv=env,
+                scratch_dir=tmpdir,
+                expert_policy=expert,
+                bc_trainer=bc_trainer,
+                rng=rng,
+            )
+            dagger_trainer.train(20_000,bc_train_kwargs=dict(log_rollouts_venv=None))
+
+
+        np.savez(
+            f"logs/metrics_dagger_{seed}.npz",
+            rewards=env.envs[0].get_episode_rewards(),
+            lengths=env.envs[0].get_episode_lengths(),
+        )
 
     dagger_trainer.policy.save("data/dagger_policy.pt")
-
-    np.savez(
-        "logs/metrics_dagger.npz",
-        rewards=env.envs[0].get_episode_rewards(),
-        lengths=env.envs[0].get_episode_lengths(),
-    )
-
     env.close()

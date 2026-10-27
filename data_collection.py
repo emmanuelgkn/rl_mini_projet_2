@@ -6,10 +6,10 @@ from stable_baselines3 import SAC
 if __name__ == "__main__":
     env = DummyVecEnv([make_env])
     expert = ExpertPolicy(env)
-    model = SAC("MlpPolicy", env=env,buffer_size=50_000)
+    model = SAC("MlpPolicy", env=env,buffer_size=20_000)
 
     obs = env.reset()
-    for _ in range(10_000):
+    for _ in range(20_000):
         action, _ = expert.predict(obs, deterministic=True)
         next_obs, reward, done, info = env.step(action)
         scaled_action = model.policy.scale_action(action)
