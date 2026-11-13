@@ -16,7 +16,7 @@ from stable_baselines3.common.policies import ActorCriticPolicy
 
 class LayerNormReLU(nn.Sequential):
     def __init__(self):
-        super().__init__(nn.LayerNorm(64), nn.ReLU())
+        super().__init__(nn.LayerNorm(256), nn.ReLU())
 
 def make_env():
     env = gym.make(
@@ -63,7 +63,7 @@ if __name__ == "__main__":
         env.observation_space,
         env.action_space,
         lr_schedule=lambda _: 1e-3,
-        net_arch=[64, 64],
+        net_arch=[256, 256],
         activation_fn=LayerNormReLU,
         
         )
